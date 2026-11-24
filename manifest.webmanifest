@@ -1,0 +1,17 @@
+{
+  "name": "Misi Hero Tatabahasa",
+  "short_name": "Hero Tatabahasa",
+  "description": "Permainan pengembaraan untuk belajar tatabahasa Bahasa Melayu.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#16213e",
+  "theme_color": "#0f1a33",
+  "lang": "ms",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
