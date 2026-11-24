@@ -7,6 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f1a33">
+<meta name="apple-mobile-web-app-title" content="Hero Tatabahasa">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <title>Misi Hero Tatabahasa</title>
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -840,7 +845,7 @@ var pPrev = document.getElementById("pPrev"), pNext = document.getElementById("p
 /* ============ AUDIO: KESAN BUNYI + MUZIK LATAR (Web Audio API, dijana dalam kod, tiada fail luar) ============ */
 var audioCtx = null, comp = null, master = null, sfxBus = null;
 var vol = 0.5, musicOn = true, sfxOn = true, musicStarted = false, musicWanted = false, mPending = false;
-var mTimer = null, mStep = 0, mNext = 0, mBus = null, mCfg = -1, voices = 0, lastSfx = {};
+var mTimer = null, mStep = 0, mNext = 0, mBus = null, mCfg = -1, voices = 0, lastSfx = {}, mResumeLate = false;
 try{ var AS = JSON.parse(localStorage.getItem("mht_audio") || "{}"); if(AS.m === false) musicOn = false; if(AS.s === false) sfxOn = false; if(typeof AS.v === "number") vol = Math.max(0, Math.min(1, AS.v)); }catch(_){}
 function saveAudio(){ try{ localStorage.setItem("mht_audio", JSON.stringify({m:musicOn, s:sfxOn, v:vol})); }catch(_){} }
 
@@ -1080,9 +1085,16 @@ function buildMusicBus(a, dest){
   return {bus:bus, send:send, dl:dl, all:[bus, lp, send, dl, fb, wet]};
 }
 function mtick(){
-  if(!musicOn || !audioCtx || !mBus || audioCtx.state !== "running") return;
+  if(!musicOn || !audioCtx || !mBus) return;
+  /* iOS boleh menggantung AudioContext (panggilan, skrin kunci, tab latar). Cuba sambung semula dan tunggu. */
+  if(audioCtx.state !== "running"){
+    if(musicWanted && audioCtx.state !== "closed"){ try{ var rr = audioCtx.resume(); if(rr && rr.catch) rr.catch(function(){}); }catch(_){} }
+    mResumeLate = true; return;
+  }
   try{
     var li = Math.max(0, Math.min(LV.length - 1, lvl || 0)), C = LV[li], spb = 60/(C.bpm*4);
+    /* Selepas gantung, mNext masih masa lama. Tanpa pembetulan ini, semua nota tertinggal dimainkan serentak (bunyi pecah / senyap). */
+    if(mResumeLate || mNext < audioCtx.currentTime){ mResumeLate = false; mNext = audioCtx.currentTime + 0.05; }
     if(mCfg !== li){                                   // level baharu: lagu baharu bermula dari bar pertama
       mCfg = li; mStep = 0; mNext = Math.max(mNext, audioCtx.currentTime + 0.05);
       mBus.dl.delayTime.setValueAtTime(spb*3, audioCtx.currentTime);
